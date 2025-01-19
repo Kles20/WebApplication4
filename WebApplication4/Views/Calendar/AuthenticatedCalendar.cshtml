@@ -1,0 +1,101 @@
+﻿@model WebApplication1.Models.CalendarViewModel
+
+<h1>Kalendarz - @DateTime.Now.ToString("MMMM yyyy")</h1>
+
+<div class="calendar-container">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Pon</th>
+                <th>Wt</th>
+                <th>Śr</th>
+                <th>Czw</th>
+                <th>Pt</th>
+                <th>Sob</th>
+                <th>Ndz</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var week in Model.Days)
+            {
+                <tr>
+                    @foreach (var day in week)
+                    {
+                        if (day == null)
+                        {
+                            <td></td>
+                        }
+                        else
+                        {
+                            <td>
+                                @day.Date.Day
+                                @if (day.Events.Any())
+                                {
+                                    <ul>
+                                        @foreach (var ev in day.Events)
+                                        {
+                                            <li>@ev</li>
+                                        }
+                                    </ul>
+                                }
+                                <div>
+                                    <button class="btn btn-sm btn-info" onclick="openEventModal('@day.Date.ToString("yyyy-MM-dd")')">Dodaj Wydarzenie</button>
+                                </div>
+                            </td>
+                        }
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal dla wydarzeń -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">Dodaj Wydarzenie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="eventForm">
+                    <input type="hidden" id="eventDate" name="Date" />
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">Tytuł</label>
+                        <input type="text" class="form-control" id="eventTitle" name="Title" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Dodaj Wydarzenie</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openEventModal(date) {
+        document.getElementById('eventDate').value = date;
+        new bootstrap.Modal(document.getElementById('eventModal')).show();
+    }
+
+    document.getElementById('eventForm').onsubmit = async function (e) {
+        e.preventDefault();
+        const date = document.getElementById('eventDate').value;
+        const title = document.getElementById('eventTitle').value;
+
+        const response = await fetch('/Calendar/AddEvent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ Date: date, Title: title })
+        });
+
+        if (response.ok) {
+            alert('Wydarzenie dodane!');
+            window.location.reload();
+        } else {
+            alert('Błąd podczas dodawania wydarzenia.');
+        }
+    };
+</script>

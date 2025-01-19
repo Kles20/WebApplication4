@@ -1,0 +1,85 @@
+﻿@model List<WebApplication1.Models.Subject>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Oceny - Student</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .subject-container {
+            background-color: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+            .subject-container h3 {
+                margin: 0;
+                color: #333;
+            }
+
+            .subject-container ul {
+                list-style-type: none;
+                padding: 0;
+            }
+
+            .subject-container li {
+                margin: 5px 0;
+            }
+
+        .average {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Twoje Oceny</h1>
+
+        @foreach (var subject in Model)
+        {
+            <div class="subject-container">
+                <h3>@subject.Name</h3>
+                <ul>
+                    @foreach (var grade in subject.Grades)
+                    {
+                        <li>@grade.Value (Dodano: @grade.DateAdded)</li>
+                    }
+                </ul>
+
+                <!-- Obliczanie średniej ocen -->
+                <p class="average">
+                    Średnia ocen:
+                    @if (subject.Grades.Count > 0)
+                    {
+                        @subject.Grades.Average(g => g.Value).ToString("0.00")
+                    }
+                    else
+                    {
+                        <span>Brak ocen</span>
+                    }
+                </p>
+            </div>
+        }
+    </div>
+</body>
+</html>

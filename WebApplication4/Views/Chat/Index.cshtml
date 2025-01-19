@@ -1,0 +1,53 @@
+﻿@model List<Projekt.Models.ChatMessage>
+
+<h1>Chat</h1>
+
+<div>
+    <strong>Wybierz odbiorcę:</strong>
+    <select id="receiverSelect">
+        <option value="">-- Choose a recipient --</option>
+        @foreach (var user in ViewBag.Users as List<Microsoft.AspNetCore.Identity.IdentityUser>)
+        {
+            <option value="@user.UserName" >@user.UserName</option>
+        }
+    </select>
+</div>
+
+<div id="messagesList">
+    @foreach (var message in Model)
+    {
+        <span>@message.Message</span>
+        <span>@message.Timestamp.ToString("HH:mm")</span>
+        <div>
+            @if (message.Sender == User.Identity.Name)
+            {
+                <strong>You</strong>
+                @("(to " + message.Receiver + ")")
+        }
+            else
+            {
+                <strong>@message.Sender</strong>
+                @("(to " + message.Receiver + ")")
+        }
+            
+        </div>
+    }
+</div>
+
+<form method="post" asp-action="SendMessage">
+    <input type="hidden" name="receiver" id="receiverInput" /><br />
+    <strong>Treść wiadomości:</strong>
+    <textarea name="message" placeholder="Type a message..." required cols="30" rows="3"></textarea>
+    <button type="submit" class="btn btn-primary">Send</button>
+</form>
+
+<script>
+    // Ustawienie wybranego odbiorcy w ukrytym polu
+    document.getElementById("receiverSelect").addEventListener("change", function () {
+        document.getElementById("receiverInput").value = this.value;
+    });
+
+    // Obsługa domyślnego odbiorcy
+    const receiverSelect = document.getElementById("receiverSelect");
+    receiverSelect.value = receiverSelect.value || "";
+</script>

@@ -1,0 +1,48 @@
+﻿@model WebApplication1.Models.CalendarViewModel
+
+<h1>Kalendarz - @DateTime.Now.ToString("MMMM yyyy")</h1>
+
+<div class="calendar-container">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Pon</th>
+                <th>Wt</th>
+                <th>Śr</th>
+                <th>Czw</th>
+                <th>Pt</th>
+                <th>Sob</th>
+                <th>Ndz</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var week in Model.Days)
+            {
+                <tr>
+                    @foreach (var day in week)
+                    {
+                        if (day == null)
+                        {
+                            <td></td>
+                        }
+                        else
+                        {
+                            <td>
+                                @day.Date.Day
+                                @if (day.Events.Any())
+                                {
+                                    <ul>
+                                        @foreach (var ev in day.Events)
+                                        {
+                                            <li>@ev</li>
+                                        }
+                                    </ul>
+                                }
+                            </td>
+                        }
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
