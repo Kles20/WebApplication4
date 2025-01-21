@@ -2,47 +2,49 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Projekt.Models;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WebApplication1.Data;
 
 namespace Projekt.Controllers
 {
     [Authorize]
     public class ChatController : Controller
     {
-        private static readonly List<ChatMessage> Messages = new();
+        private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
 
-        public ChatController(UserManager<IdentityUser> userManager)
+        public ChatController(UserManager<IdentityUser> userManager, ApplicationDbContext context)
         {
             _userManager = userManager;
+            _context = context;
         }
 
-        // Widok czatu - wyświetlanie wiadomości oraz wybór odbiorcy
+        //wyświetlanie wiadomości oraz wybór odbiorcy
         [HttpGet]
-
-
         public async Task<IActionResult> Index()
         {
-            // Pobierz zalogowanego użytkownika
+            //pobierz zalogowanego użytkownika
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            // Pobierz wszystkich użytkowników, poza zalogowanym
+            //pobierz wszystkich użytkowników, bez zalogowanego
             var users = _userManager.Users.Where(u => u.UserName != user.UserName).ToList();
+            ViewBag.Users = users;
 
-            ViewBag.Users = users;  // Przekaż użytkowników do widoku
+            //pobierz wiadomości zalogowanego użytkownika
+            var messages = _context.ChatMessages
+                .Where(m => m.Sender == user.UserName || m.Receiver == user.UserName)
+                .OrderBy(m => m.Timestamp) 
+                .ToList();
 
-            var messages = Messages.Where(m => m.Sender == user.UserName || m.Receiver == user.UserName).ToList() ?? new List<ChatMessage>();
             return View(messages);
         }
 
-
-        // Wysyłanie wiadomości
+        
         [HttpPost]
         public async Task<IActionResult> SendMessage(string receiver, string message)
         {
@@ -64,10 +66,12 @@ namespace Projekt.Controllers
                 Message = message,
                 Timestamp = DateTime.Now
             };
+            //Wysyłanie wiadomości
+            
+            _context.ChatMessages.Add(chatMessage);
+            await _context.SaveChangesAsync();
 
-            Messages.Add(chatMessage);
-
-            return RedirectToAction("Index");
+            return RedirectToAction("Index"); // Zapisz wiadomość w bazie danych
         }
     }
 }

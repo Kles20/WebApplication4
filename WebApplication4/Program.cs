@@ -4,13 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Konfiguracja DbContext z SQL Server
+// konfiguracja DbContext z SQL Server
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Rejestracja us³ug Identity
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = true;
@@ -20,19 +19,59 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     options.Password.RequiredLength = 8;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
     options.Lockout.MaxFailedAccessAttempts = 5;
-}).AddEntityFrameworkStores<ApplicationDbContext>();
+}).AddRoles<IdentityRole>() //dodanie wsparcia dla ról
+  .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// Dodaj wsparcie dla Razor Pages
 builder.Services.AddRazorPages();
 
-// Dodaj wsparcie dla kontrolerów i widoków
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Middleware pipeline
+// Dodanie ról i administratora
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+
+    //dodaj role, jeœli nie istniej¹
+    string[] roles = { "Administrator", "Teacher", "Student" };
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+
+    // dodaj u¿ytkownika administrator
+    string adminEmail = "admin@abc";
+    string adminPassword = "1qazXSW@";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if (adminUser == null)
+    {
+        adminUser = new IdentityUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true
+        };
+        var result = await userManager.CreateAsync(adminUser, adminPassword);
+        if (result.Succeeded)
+        {
+            //przypisz rolê administrator
+            await userManager.AddToRoleAsync(adminUser, "Administrator");
+        }
+        else
+        {
+            throw new Exception($"Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        }
+    }
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -42,15 +81,13 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseAuthentication(); // W³¹czenie uwierzytelniania
-app.UseAuthorization(); // W³¹czenie autoryzacji
+app.UseAuthentication(); 
+app.UseAuthorization(); 
 
-// Mapowanie tras kontrolerów
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Mapowanie Razor Pages
 app.MapRazorPages();
 
 app.Run();

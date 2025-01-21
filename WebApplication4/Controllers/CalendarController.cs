@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace WebApplication1.Controllers
 {
+    [Authorize]
     public class CalendarController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -14,7 +15,8 @@ namespace WebApplication1.Controllers
             _context = context;
         }
 
-        // Akcja do generowania kalendarza
+        // Akcja do wyświetlania kalendarza (dostępna dla uczniów i nauczycieli)
+        [Authorize(Roles = "Student,Teacher")]
         public IActionResult Index()
         {
             var model = new CalendarViewModel();
@@ -41,14 +43,14 @@ namespace WebApplication1.Controllers
                 }
             }
 
-            if (User.Identity.IsAuthenticated)
+            // Sprawdź, czy użytkownik jest nauczycielem, jeśli tak, wyświetl kalendarz nauczyciela
+            if (User.IsInRole("Teacher"))
             {
-                return View("AuthenticatedCalendar", model);  // Widok dla zalogowanych użytkowników
+                return View("AuthenticatedCalendar", model);  // Widok dla nauczycieli
             }
-            else
-            {
-                return View("GuestCalendar", model);  // Widok dla niezalogowanych użytkowników
-            }
+
+            // Inaczej, jeśli użytkownik to uczeń, wyświetl kalendarz ucznia
+            return View("GuestCalendar", model);  // Widok dla uczniów
         }
 
         // Funkcja do generowania kalendarza
@@ -91,9 +93,9 @@ namespace WebApplication1.Controllers
             return days;
         }
 
-        // Akcja do dodawania wydarzenia
+        // Akcja do dodawania wydarzenia (dostępna tylko dla nauczycieli)
         [HttpPost]
-        [Authorize]  // Tylko dla zalogowanych użytkowników
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> AddEvent([FromBody] EventModel eventModel)
         {
             if (ModelState.IsValid)
@@ -102,7 +104,6 @@ namespace WebApplication1.Controllers
                 {
                     Date = DateTime.Parse(eventModel.Date),
                     Title = eventModel.Title
-                    // Nie zapisujemy już UserId, ponieważ usunęliśmy pole UserId
                 };
 
                 _context.Events.Add(eventToAdd);
