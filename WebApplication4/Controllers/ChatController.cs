@@ -2,27 +2,26 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Projekt.Models;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WebApplication1.Data;
 
 namespace Projekt.Controllers
 {
     [Authorize]
     public class ChatController : Controller
     {
-        private static readonly List<ChatMessage> Messages = new();
+        private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
 
-        public ChatController(UserManager<IdentityUser> userManager)
+        public ChatController(UserManager<IdentityUser> userManager, ApplicationDbContext context)
         {
             _userManager = userManager;
+            _context = context;
         }
 
         // Widok czatu - wyświetlanie wiadomości oraz wybór odbiorcy
         [HttpGet]
-
-
         public async Task<IActionResult> Index()
         {
             // Pobierz zalogowanego użytkownika
@@ -34,13 +33,16 @@ namespace Projekt.Controllers
 
             // Pobierz wszystkich użytkowników, poza zalogowanym
             var users = _userManager.Users.Where(u => u.UserName != user.UserName).ToList();
+            ViewBag.Users = users;
 
-            ViewBag.Users = users;  // Przekaż użytkowników do widoku
+            // Pobierz wiadomości dla zalogowanego użytkownika
+            var messages = _context.ChatMessages
+                .Where(m => m.Sender == user.UserName || m.Receiver == user.UserName)
+                .OrderBy(m => m.Timestamp) // Posortowane po czasie
+                .ToList();
 
-            var messages = Messages.Where(m => m.Sender == user.UserName || m.Receiver == user.UserName).ToList() ?? new List<ChatMessage>();
             return View(messages);
         }
-
 
         // Wysyłanie wiadomości
         [HttpPost]
@@ -65,7 +67,9 @@ namespace Projekt.Controllers
                 Timestamp = DateTime.Now
             };
 
-            Messages.Add(chatMessage);
+            // Zapisz wiadomość w bazie danych
+            _context.ChatMessages.Add(chatMessage);
+            await _context.SaveChangesAsync();
 
             return RedirectToAction("Index");
         }
